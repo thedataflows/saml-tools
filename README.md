@@ -14,13 +14,31 @@ A CLI tool for decrypting SAML 2.0 encrypted assertions using RSA private keys.
 ## Installation
 
 ```bash
-go build -o saml-decrypt ./cmd/saml-decrypt
+go build -o saml-tools .
 ```
 
 ## Usage
 
 ```bash
-saml-decrypt --key <private-key> [<input-file>] [flags]
+./saml-tools <command> [flags]
+```
+
+### Commands
+
+- `version`: Print the application version
+- `decrypt`: Decrypt a SAML assertion
+
+### Global Flags
+
+- `--log-level`: Log level. Default: `info`
+- `--log-format`: Log format. Default: `console`
+- `-t, --timeout`: Request timeout. Default: `5s`
+- `-h, --help`: Show help
+
+### Decrypt Usage
+
+```bash
+./saml-tools decrypt --key <private-key> [<input-file>] [flags]
 ```
 
 ### Flags
@@ -29,44 +47,65 @@ saml-decrypt --key <private-key> [<input-file>] [flags]
 - `-o, --output`: Output file (default: stdout)
 - `-p, --pretty`: Pretty-print XML output
 - `-v, --verbose`: Enable verbose logging
-- `-h, --help`: Show help
+
+### Environment Variables
+
+- `LOG_LEVEL`: Same as `--log-level`
+- `LOG_FORMAT`: Same as `--log-format`
+- `TIMEOUT`: Same as `--timeout`
+- `KEY`: Same as `--key`
+- `OUTPUT`: Same as `--output`
+- `PRETTY`: Same as `--pretty`
+- `VERBOSE`: Same as `--verbose`
 
 ### Examples
+
+#### Show version
+
+```bash
+./saml-tools version
+```
 
 #### Decrypt from file with PEM key file
 
 ```bash
-saml-decrypt encrypted.xml --key private.pem
+./saml-tools decrypt encrypted.xml --key private.pem
 ```
 
 #### Decrypt from file with base64 key
 
 ```bash
-saml-decrypt encrypted.xml --key "LS0tLS1CRUdJTiBSU0EgUFJJVkFURSBLRVktLS0tLQ..."
+./saml-tools decrypt encrypted.xml --key "LS0tLS1CRUdJTiBQUklWQVRFIEtFWS0tLS0tCg..."
 ```
 
 #### Decrypt from stdin
 
 ```bash
-cat encrypted.xml | saml-decrypt --key private.pem
+cat encrypted.xml | ./saml-tools decrypt --key private.pem
 ```
 
 #### Output to file with pretty-printing
 
 ```bash
-saml-decrypt encrypted.xml --key private.pem --output decrypted.xml --pretty
+./saml-tools decrypt encrypted.xml --key private.pem --output decrypted.xml --pretty
 ```
 
 #### Decrypt base64-encoded SAML response
 
 ```bash
-saml-decrypt saml-response.b64 --key private.pem
+./saml-tools decrypt saml-response.b64 --key private.pem
 ```
 
 #### Decrypt HTTP-POST binding data
 
 ```bash
-echo "SAMLResponse=PHNhbWxwOlJlc3BvbnNl..." | saml-decrypt --key private.pem
+echo "SAMLResponse=PHNhbWxwOlJlc3BvbnNl..." | ./saml-tools decrypt --key private.pem
+```
+
+#### Use JSON logs
+
+```bash
+./saml-tools --log-format json decrypt encrypted.xml --key private.pem
 ```
 
 ## Supported Formats
