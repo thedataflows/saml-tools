@@ -1,0 +1,26 @@
+module github.com/thedataflows/saml-tools
+
+go 1.26
+
+require (
+	github.com/alecthomas/kong v1.14.0
+	github.com/alecthomas/kong-yaml v0.2.0
+	github.com/beevik/etree v1.6.0
+	github.com/joho/godotenv v1.5.1
+	github.com/stretchr/testify v1.11.1
+	github.com/thedataflows/go-lib-log v1.8.0
+)
+
+require (
+	github.com/davecgh/go-spew v1.1.1 // indirect
+	github.com/goccy/go-yaml v1.19.2 // indirect
+	github.com/kr/text v0.2.0 // indirect
+	github.com/mattn/go-colorable v0.1.14 // indirect
+	github.com/mattn/go-isatty v0.0.20 // indirect
+	github.com/pmezard/go-difflib v1.0.0 // indirect
+	github.com/rs/zerolog v1.34.0 // indirect
+	golang.org/x/sys v0.42.0 // indirect
+	golang.org/x/time v0.15.0 // indirect
+	gopkg.in/op/go-logging.v1 v1.0.0-20160211212156-b2cb9fa56473 // indirect
+	gopkg.in/yaml.v3 v3.0.1 // indirect
+)
