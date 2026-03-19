@@ -167,8 +167,8 @@ func findElement(root *etree.Element, name string) *etree.Element {
 	return nil
 }
 
-func generateSymmetricKey(cipher string) ([]byte, string, error) {
-	switch cipher {
+func generateSymmetricKey(cipherName string) ([]byte, string, error) {
+	switch cipherName {
 	case "aes128-cbc":
 		key := make([]byte, 16)
 		if _, err := io.ReadFull(rand.Reader, key); err != nil {
@@ -194,7 +194,7 @@ func generateSymmetricKey(cipher string) ([]byte, string, error) {
 		}
 		return key, "http://www.w3.org/2009/xmlenc11#aes256-gcm", nil
 	default:
-		return nil, "", fmt.Errorf("%w: unsupported cipher: %s", ErrUnsupportedAlgorithm, cipher)
+		return nil, "", fmt.Errorf("%w: unsupported cipher: %s", ErrUnsupportedAlgorithm, cipherName)
 	}
 }
 
@@ -218,14 +218,14 @@ func encryptKey(symKey []byte, transport string, pubKey *rsa.PublicKey) ([]byte,
 	}
 }
 
-func encryptPayload(plaintext []byte, cipher string, key []byte) ([]byte, error) {
-	switch cipher {
+func encryptPayload(plaintext []byte, cipherName string, key []byte) ([]byte, error) {
+	switch cipherName {
 	case "aes128-cbc", "aes256-cbc":
 		return encryptAESCBC(plaintext, key)
 	case "aes128-gcm", "aes256-gcm":
 		return encryptAESGCM(plaintext, key)
 	default:
-		return nil, fmt.Errorf("%w: unsupported cipher: %s", ErrUnsupportedAlgorithm, cipher)
+		return nil, fmt.Errorf("%w: unsupported cipher: %s", ErrUnsupportedAlgorithm, cipherName)
 	}
 }
 
@@ -341,10 +341,12 @@ func isInResponse(root *etree.Element) bool {
 func wrapInResponse(encryptedAssertion string, originalRoot *etree.Element) []byte {
 	// Try to extract issuer from original
 	var issuer string
-	if el := originalRoot.FindElement("//saml:Issuer"); el != nil {
-		issuer = el.Text()
-	} else if el := originalRoot.FindElement("//Issuer"); el != nil {
-		issuer = el.Text()
+	issuerElement := originalRoot.FindElement("//saml:Issuer")
+	if issuerElement == nil {
+		issuerElement = originalRoot.FindElement("//Issuer")
+	}
+	if issuerElement != nil {
+		issuer = issuerElement.Text()
 	}
 	if issuer == "" {
 		issuer = "https://issuer.example.com"

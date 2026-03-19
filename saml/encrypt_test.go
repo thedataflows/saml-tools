@@ -26,7 +26,11 @@ func TestEncrypter_Encrypt_DefaultOptions(t *testing.T) {
 </saml:Assertion>`
 
 	encrypter := saml.NewEncrypter()
-	opts := saml.EncryptOptions{}
+	opts := saml.EncryptOptions{
+		TargetNode:    "saml:Assertion",
+		KeyTransport:  "rsa-oaep",
+		PayloadCipher: "aes128-cbc",
+	}
 
 	encrypted, err := encrypter.Encrypt([]byte(plaintext), &key.PublicKey, opts)
 	require.NoError(t, err)
@@ -75,23 +79,24 @@ func TestEncrypter_Encrypt_AllAlgorithms(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
+		t.Run(tt.name, func(testT *testing.T) {
 			encrypter := saml.NewEncrypter()
 			opts := saml.EncryptOptions{
+				TargetNode:    "saml:Assertion",
 				KeyTransport:  tt.keyTransport,
 				PayloadCipher: tt.payloadCipher,
 			}
 
 			encrypted, err := encrypter.Encrypt([]byte(plaintext), &key.PublicKey, opts)
-			require.NoError(t, err)
+			require.NoError(testT, err)
 
 			// Verify it can be decrypted
 			decrypter := saml.NewDecrypter(saml.Config{})
 			decrypted, err := decrypter.Decrypt(encrypted, key)
-			require.NoError(t, err)
+			require.NoError(testT, err)
 
 			// Verify the content
-			assert.Contains(t, string(decrypted), "test@example.com")
+			assert.Contains(testT, string(decrypted), "test@example.com")
 		})
 	}
 }
@@ -119,7 +124,10 @@ func TestEncrypter_Encrypt_WithCertificate(t *testing.T) {
 
 	encrypter := saml.NewEncrypter()
 	opts := saml.EncryptOptions{
-		Certificate: cert,
+		TargetNode:    "saml:Assertion",
+		KeyTransport:  "rsa-oaep",
+		PayloadCipher: "aes128-cbc",
+		Certificate:   cert,
 	}
 
 	encrypted, err := encrypter.Encrypt([]byte(plaintext), &key.PublicKey, opts)
@@ -149,13 +157,19 @@ func TestEncrypter_Encrypt_InvalidOptions(t *testing.T) {
 		wantErr string
 	}{
 		{
-			name:    "nil public key",
-			opts:    saml.EncryptOptions{},
+			name: "nil public key",
+			opts: saml.EncryptOptions{
+				TargetNode:    "saml:Assertion",
+				KeyTransport:  "rsa-oaep",
+				PayloadCipher: "aes128-cbc",
+			},
 			wantErr: "public key is nil",
 		},
 		{
 			name: "unsupported cipher",
 			opts: saml.EncryptOptions{
+				TargetNode:    "saml:Assertion",
+				KeyTransport:  "rsa-oaep",
 				PayloadCipher: "aes-999",
 			},
 			wantErr: "unsupported cipher",
@@ -163,14 +177,16 @@ func TestEncrypter_Encrypt_InvalidOptions(t *testing.T) {
 		{
 			name: "unsupported key transport",
 			opts: saml.EncryptOptions{
-				KeyTransport: "invalid",
+				TargetNode:    "saml:Assertion",
+				KeyTransport:  "invalid",
+				PayloadCipher: "aes128-cbc",
 			},
 			wantErr: "unsupported key transport",
 		},
 	}
 
 	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
+		t.Run(tt.name, func(testT *testing.T) {
 			encrypter := saml.NewEncrypter()
 			var pubKey *rsa.PublicKey
 			if tt.name != "nil public key" {
@@ -178,8 +194,8 @@ func TestEncrypter_Encrypt_InvalidOptions(t *testing.T) {
 			}
 
 			_, err := encrypter.Encrypt([]byte(plaintext), pubKey, tt.opts)
-			assert.Error(t, err)
-			assert.Contains(t, err.Error(), tt.wantErr)
+			assert.Error(testT, err)
+			assert.Contains(testT, err.Error(), tt.wantErr)
 		})
 	}
 }
@@ -206,13 +222,17 @@ func TestEncrypter_Encrypt_InvalidXML(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
+		t.Run(tt.name, func(testT *testing.T) {
 			encrypter := saml.NewEncrypter()
-			opts := saml.EncryptOptions{}
+			opts := saml.EncryptOptions{
+				TargetNode:    "saml:Assertion",
+				KeyTransport:  "rsa-oaep",
+				PayloadCipher: "aes128-cbc",
+			}
 
 			_, err := encrypter.Encrypt([]byte(tt.plaintext), &key.PublicKey, opts)
-			assert.Error(t, err)
-			assert.Contains(t, err.Error(), tt.wantErr)
+			assert.Error(testT, err)
+			assert.Contains(testT, err.Error(), tt.wantErr)
 		})
 	}
 }
@@ -227,7 +247,11 @@ func TestEncrypter_Encrypt_WrapInResponse(t *testing.T) {
 </saml:Assertion>`
 
 	encrypter := saml.NewEncrypter()
-	opts := saml.EncryptOptions{}
+	opts := saml.EncryptOptions{
+		TargetNode:    "saml:Assertion",
+		KeyTransport:  "rsa-oaep",
+		PayloadCipher: "aes128-cbc",
+	}
 
 	encrypted, err := encrypter.Encrypt([]byte(plaintext), &key.PublicKey, opts)
 	require.NoError(t, err)
@@ -263,7 +287,11 @@ func TestEncrypter_Encrypt_AlreadyInResponse(t *testing.T) {
 </samlp:Response>`
 
 	encrypter := saml.NewEncrypter()
-	opts := saml.EncryptOptions{}
+	opts := saml.EncryptOptions{
+		TargetNode:    "saml:Assertion",
+		KeyTransport:  "rsa-oaep",
+		PayloadCipher: "aes128-cbc",
+	}
 
 	encrypted, err := encrypter.Encrypt([]byte(plaintext), &key.PublicKey, opts)
 	require.NoError(t, err)
@@ -294,7 +322,9 @@ func TestEncrypter_Encrypt_TargetNodeOption(t *testing.T) {
 
 	encrypter := saml.NewEncrypter()
 	opts := saml.EncryptOptions{
-		TargetNode: "saml:Assertion",
+		TargetNode:    "saml:Assertion",
+		KeyTransport:  "rsa-oaep",
+		PayloadCipher: "aes128-cbc",
 	}
 
 	encrypted, err := encrypter.Encrypt([]byte(plaintext), &key.PublicKey, opts)
@@ -333,6 +363,7 @@ func TestEncrypter_RoundTrip(t *testing.T) {
 
 	encrypter := saml.NewEncrypter()
 	encOpts := saml.EncryptOptions{
+		TargetNode:    "saml:Assertion",
 		PayloadCipher: "aes256-gcm",
 		KeyTransport:  "rsa-oaep",
 	}

@@ -1,4 +1,4 @@
-# SAML Decrypt
+# SAML Tools
 
 A CLI tool for encrypting and decrypting SAML 2.0 assertions using RSA keys.
 
@@ -59,6 +59,7 @@ go build -o saml-tools .
 #### Encrypt Flags
 
 - `-k, --key` (required): Public key or X.509 certificate (PEM file path or base64 string)
+- `--target-node`: Target XML node to encrypt. Default: `saml:Assertion`
 - `-a, --algorithm`: Key transport algorithm (`rsa-oaep`, `rsa-pkcs1`). Default: `rsa-oaep`
 - `-c, --cipher`: Payload cipher (`aes128-cbc`, `aes256-cbc`, `aes128-gcm`, `aes256-gcm`). Default: `aes128-cbc`
 - `-i, --include-cert`: Include certificate in KeyInfo. Default: `true`
@@ -82,6 +83,7 @@ go build -o saml-tools .
 
 - `ST_KEY`: Same as `--key`
 - `ST_OUTPUT`: Same as `--output`
+- `ST_TARGET_NODE`: Same as `--target-node`
 - `ST_ALGORITHM`: Same as `--algorithm`
 - `ST_CIPHER`: Same as `--cipher`
 - `ST_PRETTY`: Same as `--pretty`
@@ -161,6 +163,12 @@ cat assertion.xml | ./saml-tools encrypt --key certificate.pem
 
 ```bash
 ./saml-tools encrypt assertion.xml --key cert.pem --cipher aes256-gcm --algorithm rsa-pkcs1
+```
+
+#### Encrypt a custom XML node
+
+```bash
+./saml-tools encrypt response.xml --key cert.pem --target-node Assertion
 ```
 
 #### Output to encrypted file with pretty-printing

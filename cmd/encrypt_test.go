@@ -65,6 +65,7 @@ func TestCLI_Encrypt_Help(t *testing.T) {
 	assert.Contains(t, outputStr, "encrypt")
 	assert.Contains(t, outputStr, "--key")
 	assert.Contains(t, outputStr, "--output")
+	assert.Contains(t, outputStr, "--target-node")
 	assert.Contains(t, outputStr, "--algorithm")
 	assert.Contains(t, outputStr, "--cipher")
 	assert.Contains(t, outputStr, "--include-cert")
@@ -292,7 +293,7 @@ func TestCLI_Encrypt_AllAlgorithms(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		t.Run(tt.algorithm+"_"+tt.cipher, func(t *testing.T) {
+		t.Run(tt.algorithm+"_"+tt.cipher, func(testT *testing.T) {
 			cmd := exec.Command("go", "run", ".", "encrypt",
 				"--key", certFile,
 				"--algorithm", tt.algorithm,
@@ -301,8 +302,8 @@ func TestCLI_Encrypt_AllAlgorithms(t *testing.T) {
 			cmd.Dir = ".."
 			output, err := cmd.CombinedOutput()
 
-			assert.NoError(t, err)
-			assert.Contains(t, string(output), "EncryptedAssertion")
+			assert.NoError(testT, err)
+			assert.Contains(testT, string(output), "EncryptedAssertion")
 		})
 	}
 }

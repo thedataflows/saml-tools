@@ -15,6 +15,7 @@ type EncryptCmd struct {
 	Input       string `arg:"" optional:"" help:"Input XML file (or stdin)" type:"existingfile"`
 	Key         string `short:"k" required:"" help:"Public key or X.509 certificate (PEM file or base64)"`
 	Output      string `short:"o" help:"Output file (default: stdout)" type:"path"`
+	TargetNode  string `help:"Target XML node to encrypt" default:"saml:Assertion"`
 	Algorithm   string `short:"a" help:"Key transport algorithm" enum:"rsa-oaep,rsa-pkcs1" default:"rsa-oaep"`
 	Cipher      string `short:"c" help:"Payload cipher" enum:"aes128-cbc,aes256-cbc,aes128-gcm,aes256-gcm" default:"aes128-cbc"`
 	IncludeCert bool   `short:"i" help:"Include certificate in KeyInfo" default:"true"`
@@ -74,6 +75,7 @@ func (e *EncryptCmd) Run() error {
 
 	// Build encryption options
 	opts := saml.EncryptOptions{
+		TargetNode:    e.TargetNode,
 		KeyTransport:  e.Algorithm,
 		PayloadCipher: e.Cipher,
 	}
