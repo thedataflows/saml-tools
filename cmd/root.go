@@ -28,6 +28,7 @@ type CLI struct {
 	Globals `kong:"embed"`
 	Version VersionCmd `cmd:"" help:"Show version information"`
 	Decrypt DecryptCmd `cmd:"" help:"Decrypt SAML assertions"`
+	Encrypt EncryptCmd `cmd:"" help:"Encrypt SAML assertions"`
 }
 
 // AfterApply is called after Kong parses the CLI but before the command runs

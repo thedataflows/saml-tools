@@ -23,7 +23,7 @@ type DecryptCmd struct {
 }
 
 func (d *DecryptCmd) Run() error {
-	log.Logger().Debug().Msg("Starting saml decrypt")
+	log.Logger().Info().Msg("Starting saml decrypt")
 
 	// Create services
 	keyLoader := key.NewLoader()

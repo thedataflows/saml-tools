@@ -8,10 +8,13 @@ import (
 	"crypto/sha1"
 	"crypto/sha256"
 	"crypto/x509"
+	"crypto/x509/pkix"
 	"encoding/base64"
 	"encoding/pem"
 	"fmt"
 	"io"
+	"math/big"
+	"time"
 )
 
 // GenerateRSAKey creates a deterministic RSA key for testing.
@@ -172,4 +175,112 @@ func pkcs7Pad(data []byte, blockSize int) []byte {
 		padtext[i] = byte(padding)
 	}
 	return append(data, padtext...)
+}
+
+// GenerateX509Certificate creates a self-signed X.509 certificate for testing.
+// Returns the certificate in DER and PEM formats.
+func GenerateX509Certificate(key *rsa.PrivateKey, commonName string) (certDER []byte, certPEM []byte, err error) {
+	template := &x509.Certificate{
+		SerialNumber: big.NewInt(1),
+		Subject: pkix.Name{
+			CommonName: commonName,
+		},
+		NotBefore:             time.Now(),
+		NotAfter:              time.Now().Add(time.Hour * 24 * 365),
+		KeyUsage:              x509.KeyUsageKeyEncipherment | x509.KeyUsageDigitalSignature,
+		ExtKeyUsage:           []x509.ExtKeyUsage{x509.ExtKeyUsageServerAuth},
+		BasicConstraintsValid: true,
+	}
+
+	certDER, err = x509.CreateCertificate(rand.Reader, template, template, &key.PublicKey, key)
+	if err != nil {
+		return nil, nil, fmt.Errorf("failed to create certificate: %w", err)
+	}
+
+	certPEM = pem.EncodeToMemory(&pem.Block{
+		Type:  "CERTIFICATE",
+		Bytes: certDER,
+	})
+
+	return certDER, certPEM, nil
+}
+
+// X509ToPEM converts a parsed X.509 certificate to PEM format
+func X509ToPEM(cert *x509.Certificate) []byte {
+	return pem.EncodeToMemory(&pem.Block{
+		Type:  "CERTIFICATE",
+		Bytes: cert.Raw,
+	})
+}
+
+// RSAPublicKeyToPEM exports an RSA public key to PEM format (PKIX)
+func RSAPublicKeyToPEM(pubKey *rsa.PublicKey) ([]byte, error) {
+	pubDER, err := x509.MarshalPKIXPublicKey(pubKey)
+	if err != nil {
+		return nil, fmt.Errorf("failed to marshal public key: %w", err)
+	}
+
+	return pem.EncodeToMemory(&pem.Block{
+		Type:  "PUBLIC KEY",
+		Bytes: pubDER,
+	}), nil
+}
+
+// GenerateX509CertificateWithOptions creates a self-signed X.509 certificate with custom options
+func GenerateX509CertificateWithOptions(key *rsa.PrivateKey, opts CertificateOptions) (certDER []byte, certPEM []byte, err error) {
+	template := &x509.Certificate{
+		SerialNumber: big.NewInt(int64(opts.SerialNumber)),
+		Subject: pkix.Name{
+			CommonName:   opts.CommonName,
+			Organization: []string{opts.Organization},
+		},
+		NotBefore:             opts.NotBefore,
+		NotAfter:              opts.NotAfter,
+		KeyUsage:              opts.KeyUsage,
+		ExtKeyUsage:           opts.ExtKeyUsage,
+		BasicConstraintsValid: true,
+	}
+
+	if opts.IsCA {
+		template.IsCA = true
+		template.KeyUsage |= x509.KeyUsageCertSign | x509.KeyUsageCRLSign
+	}
+
+	certDER, err = x509.CreateCertificate(rand.Reader, template, template, &key.PublicKey, key)
+	if err != nil {
+		return nil, nil, fmt.Errorf("failed to create certificate: %w", err)
+	}
+
+	certPEM = pem.EncodeToMemory(&pem.Block{
+		Type:  "CERTIFICATE",
+		Bytes: certDER,
+	})
+
+	return certDER, certPEM, nil
+}
+
+// CertificateOptions holds options for certificate generation
+type CertificateOptions struct {
+	SerialNumber int
+	CommonName   string
+	Organization string
+	NotBefore    time.Time
+	NotAfter     time.Time
+	KeyUsage     x509.KeyUsage
+	ExtKeyUsage  []x509.ExtKeyUsage
+	IsCA         bool
+}
+
+// DefaultCertificateOptions returns default certificate options
+func DefaultCertificateOptions() CertificateOptions {
+	return CertificateOptions{
+		SerialNumber: 1,
+		CommonName:   "Test Certificate",
+		Organization: "Test Organization",
+		NotBefore:    time.Now(),
+		NotAfter:     time.Now().Add(time.Hour * 24 * 365),
+		KeyUsage:     x509.KeyUsageKeyEncipherment | x509.KeyUsageDigitalSignature,
+		ExtKeyUsage:  []x509.ExtKeyUsage{x509.ExtKeyUsageServerAuth},
+		IsCA:         false,
+	}
 }

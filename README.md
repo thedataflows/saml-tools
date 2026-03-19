@@ -1,6 +1,6 @@
 # SAML Decrypt
 
-A CLI tool for decrypting SAML 2.0 encrypted assertions using RSA private keys.
+A CLI tool for encrypting and decrypting SAML 2.0 assertions using RSA keys.
 
 ## Features
 
@@ -10,6 +10,7 @@ A CLI tool for decrypting SAML 2.0 encrypted assertions using RSA private keys.
   - Key transport: RSA-OAEP, RSA-PKCS1
   - Payload: AES-128-CBC, AES-256-CBC, AES-128-GCM, AES-256-GCM
 - **Output options**: Stdout or file output, with pretty-printing
+- **Full round-trip**: Encrypt assertions and decrypt them with matching key pairs
 
 ## Installation
 
@@ -27,6 +28,7 @@ go build -o saml-tools .
 
 - `version`: Print the application version
 - `decrypt`: Decrypt a SAML assertion
+- `encrypt`: Encrypt a SAML assertion
 
 ### Global Flags
 
@@ -41,22 +43,49 @@ go build -o saml-tools .
 ./saml-tools decrypt --key <private-key> [<input-file>] [flags]
 ```
 
-### Flags
+#### Decrypt Flags
 
 - `-k, --key` (required): Private key (PEM file path or base64 string)
 - `-o, --output`: Output file (default: stdout)
 - `-p, --pretty`: Pretty-print XML output
 - `-v, --verbose`: Enable verbose logging
 
+### Encrypt Usage
+
+```bash
+./saml-tools encrypt --key <public-key> [<input-file>] [flags]
+```
+
+#### Encrypt Flags
+
+- `-k, --key` (required): Public key or X.509 certificate (PEM file path or base64 string)
+- `-a, --algorithm`: Key transport algorithm (`rsa-oaep`, `rsa-pkcs1`). Default: `rsa-oaep`
+- `-c, --cipher`: Payload cipher (`aes128-cbc`, `aes256-cbc`, `aes128-gcm`, `aes256-gcm`). Default: `aes128-cbc`
+- `-i, --include-cert`: Include certificate in KeyInfo. Default: `true`
+- `-o, --output`: Output file (default: stdout)
+- `-p, --pretty`: Pretty-print XML output
+
 ### Environment Variables
 
 - `LOG_LEVEL`: Same as `--log-level`
 - `LOG_FORMAT`: Same as `--log-format`
 - `TIMEOUT`: Same as `--timeout`
+
+#### Decrypt Environment Variables
+
 - `KEY`: Same as `--key`
 - `OUTPUT`: Same as `--output`
 - `PRETTY`: Same as `--pretty`
 - `VERBOSE`: Same as `--verbose`
+
+#### Encrypt Environment Variables
+
+- `KEY`: Same as `--key`
+- `OUTPUT`: Same as `--output`
+- `ALGORITHM`: Same as `--algorithm`
+- `CIPHER`: Same as `--cipher`
+- `PRETTY`: Same as `--pretty`
+- `INCLUDE_CERT`: Same as `--include-cert`
 
 ### Examples
 
@@ -84,7 +113,7 @@ go build -o saml-tools .
 cat encrypted.xml | ./saml-tools decrypt --key private.pem
 ```
 
-#### Output to file with pretty-printing
+#### Output to decrypted file with pretty-printing
 
 ```bash
 ./saml-tools decrypt encrypted.xml --key private.pem --output decrypted.xml --pretty
@@ -108,6 +137,66 @@ echo "SAMLResponse=PHNhbWxwOlJlc3BvbnNl..." | ./saml-tools decrypt --key private
 ./saml-tools --log-format json decrypt encrypted.xml --key private.pem
 ```
 
+### Encrypt Examples
+
+#### Encrypt with X.509 certificate
+
+```bash
+./saml-tools encrypt assertion.xml --key certificate.pem
+```
+
+#### Encrypt with public key (no certificate in output)
+
+```bash
+./saml-tools encrypt assertion.xml --key public.pem --include-cert=false
+```
+
+#### Encrypt from stdin
+
+```bash
+cat assertion.xml | ./saml-tools encrypt --key certificate.pem
+```
+
+#### Encrypt with custom algorithms
+
+```bash
+./saml-tools encrypt assertion.xml --key cert.pem --cipher aes256-gcm --algorithm rsa-pkcs1
+```
+
+#### Output to encrypted file with pretty-printing
+
+```bash
+./saml-tools encrypt assertion.xml --key certificate.pem --output encrypted.xml --pretty
+```
+
+#### Full round-trip: encrypt then decrypt
+
+```bash
+./saml-tools encrypt assertion.xml --key public.pem | ./saml-tools decrypt --key private.pem
+```
+
+**Note**: The public and private keys must be a matching pair. Logs are written to stderr, so piping works correctly.
+
+## Key Management
+
+When using both `encrypt` and `decrypt` commands, ensure you use **matching RSA key pairs**:
+
+- **Encrypt**: Use the recipient's **public key** (or X.509 certificate)
+- **Decrypt**: Use your **private key** that corresponds to the public key used for encryption
+
+To generate a matching key pair:
+
+```bash
+# Generate private key
+openssl genrsa -out private.pem 2048
+
+# Extract public key
+openssl rsa -in private.pem -pubout -out public.pem
+
+# Or create a self-signed certificate
+openssl req -new -x509 -key private.pem -out certificate.pem -days 365
+```
+
 ## Supported Formats
 
 The tool auto-detects the following input formats:
@@ -115,19 +204,6 @@ The tool auto-detects the following input formats:
 1. **Raw XML**: Files containing `<saml2:EncryptedAssertion>` or `<EncryptedAssertion>`
 2. **Base64**: Base64-encoded SAML XML
 3. **HTTP-POST**: URL-encoded form data with `SAMLResponse` parameter
-
-## Error Messages
-
-The tool provides clear, actionable error messages:
-
-- `invalid private key format`: Key is malformed or unsupported
-- `private key file not found`: PEM file doesn't exist
-- `password-protected keys not supported`: Encrypted PEM files are not supported
-- `unsupported key type`: Only RSA keys are supported (not ECDSA)
-- `malformed XML`: Input is not valid SAML XML
-- `missing encryption key`: EncryptedKey element not found
-- `decryption failed`: Wrong key or corrupted data
-- `unsupported encryption algorithm`: Algorithm not yet implemented
 
 ## Development
 
@@ -150,9 +226,10 @@ go test -fuzz=FuzzDecrypt -fuzztime=10s ./saml/...
 
 | Module | Coverage |
 | ------ | -------- |
-| key    | 84%      |
+| key    | 88%      |
 | format | 96%      |
-| saml   | 78%      |
+| saml   | 85%      |
+| cmd    | 8%       |
 
 ## License
 
@@ -164,3 +241,5 @@ go test -fuzz=FuzzDecrypt -fuzztime=10s ./saml/...
 - Password-protected PEM files are not supported for security reasons.
 - Only RSA keys are supported (2048+ bits recommended).
 - The tool does not validate SAML signatures, only decrypts encrypted assertions.
+- When encrypting, the default algorithm is RSA-OAEP which is more secure than RSA-PKCS1.
+- X.509 certificates can be included in the encrypted output to help recipients identify the encryption key.

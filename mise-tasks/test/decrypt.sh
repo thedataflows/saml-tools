@@ -4,4 +4,8 @@
 
 set -euo pipefail
 
-go run . decrypt --key testdata/demo-keys/private.pem testdata/encrypted-assertion.xml
+go run . \
+  --log-level debug \
+  decrypt \
+    --key testdata/demo-keys/private.pem\
+    testdata/encrypted-assertion.xml
