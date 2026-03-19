@@ -81,7 +81,7 @@ func Run(version string, args []string) error {
 		kong.Description("A toolkit for working with SAML assertions"),
 		kong.Configuration(kongyaml.Loader),
 		kong.UsageOnError(),
-		kong.DefaultEnvars(""),
+		kong.DefaultEnvars("ST"),
 	)
 	if err != nil {
 		return fmt.Errorf("create CLI parser: %w", err)

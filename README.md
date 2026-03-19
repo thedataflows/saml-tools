@@ -34,7 +34,7 @@ go build -o saml-tools .
 
 - `--log-level`: Log level. Default: `info`
 - `--log-format`: Log format. Default: `console`
-- `-t, --timeout`: Request timeout. Default: `5s`
+- `-t, --timeout`: Request timeout. Default: `5s` (not used yet)
 - `-h, --help`: Show help
 
 ### Decrypt Usage
@@ -67,25 +67,25 @@ go build -o saml-tools .
 
 ### Environment Variables
 
-- `LOG_LEVEL`: Same as `--log-level`
-- `LOG_FORMAT`: Same as `--log-format`
-- `TIMEOUT`: Same as `--timeout`
+- `ST_LOG_LEVEL`: Same as `--log-level`
+- `ST_LOG_FORMAT`: Same as `--log-format`
+- `ST_TIMEOUT`: Same as `--timeout`
 
 #### Decrypt Environment Variables
 
-- `KEY`: Same as `--key`
-- `OUTPUT`: Same as `--output`
-- `PRETTY`: Same as `--pretty`
-- `VERBOSE`: Same as `--verbose`
+- `ST_KEY`: Same as `--key`
+- `ST_OUTPUT`: Same as `--output`
+- `ST_PRETTY`: Same as `--pretty`
+- `ST_VERBOSE`: Same as `--verbose`
 
 #### Encrypt Environment Variables
 
-- `KEY`: Same as `--key`
-- `OUTPUT`: Same as `--output`
-- `ALGORITHM`: Same as `--algorithm`
-- `CIPHER`: Same as `--cipher`
-- `PRETTY`: Same as `--pretty`
-- `INCLUDE_CERT`: Same as `--include-cert`
+- `ST_KEY`: Same as `--key`
+- `ST_OUTPUT`: Same as `--output`
+- `ST_ALGORITHM`: Same as `--algorithm`
+- `ST_CIPHER`: Same as `--cipher`
+- `ST_PRETTY`: Same as `--pretty`
+- `ST_INCLUDE_CERT`: Same as `--include-cert`
 
 ### Examples
 
