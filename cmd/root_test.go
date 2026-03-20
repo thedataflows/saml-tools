@@ -341,8 +341,8 @@ func TestCLI_ECKeyNotSupported(t *testing.T) {
 }
 
 func TestCLI_PasswordProtectedKey(t *testing.T) {
-	// Generate password protected key
-	cmd := exec.Command("openssl", "genrsa", "-aes256", "-passout", "pass:secret", "2048")
+	// Generate password protected key with legacy PEM format (PKCS#1)
+	cmd := exec.Command("openssl", "genrsa", "-aes256", "-passout", "pass:secret", "-traditional", "2048")
 	output, err := cmd.Output()
 	require.NoError(t, err)
 
@@ -351,12 +351,29 @@ func TestCLI_PasswordProtectedKey(t *testing.T) {
 	err = os.WriteFile(keyFile, output, 0600)
 	require.NoError(t, err)
 
+	// Should fail without password, prompting for password
 	cmd = exec.Command("go", "run", ".", "decrypt", "--key", keyFile, "/dev/null")
 	cmd.Dir = ".."
 	out, err := cmd.CombinedOutput()
 
 	assert.Error(t, err)
-	assert.Contains(t, string(out), "invalid private key format")
+	assert.Contains(t, string(out), "password-protected key requires --key-password flag or ST_KEY_PASSWORD environment variable")
+
+	// Should succeed with password flag
+	cmd = exec.Command("go", "run", ".", "decrypt", "--key", keyFile, "--key-password", "secret", "/dev/null")
+	cmd.Dir = ".."
+	out, err = cmd.CombinedOutput()
+	// This will fail because /dev/null is not valid SAML, but key loading should succeed
+	assert.Error(t, err)
+	// Should not have password-related error
+	assert.NotContains(t, string(out), "password-protected key requires")
+
+	// Should fail with wrong password
+	cmd = exec.Command("go", "run", ".", "decrypt", "--key", keyFile, "--key-password", "wrongpassword", "/dev/null")
+	cmd.Dir = ".."
+	out, err = cmd.CombinedOutput()
+	assert.Error(t, err)
+	assert.Contains(t, string(out), "incorrect password for private key")
 }
 
 func TestCLI_ReadStdin(t *testing.T) {

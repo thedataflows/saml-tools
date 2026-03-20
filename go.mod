@@ -9,6 +9,7 @@ require (
 	github.com/joho/godotenv v1.5.1
 	github.com/stretchr/testify v1.11.1
 	github.com/thedataflows/go-lib-log v1.8.0
+	golang.org/x/term v0.41.0
 )
 
 require (

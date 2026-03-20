@@ -19,13 +19,15 @@ var (
 	ErrInvalidKey         = errors.New("invalid private key format")
 	ErrKeyNotFound        = errors.New("private key file not found")
 	ErrEmptyKey           = errors.New("empty key input")
-	ErrPasswordProtected  = errors.New("password-protected keys not supported")
+	ErrPasswordProtected  = errors.New("password-protected key requires password")
+	ErrWrongPassword      = errors.New("incorrect password for encrypted key")
 	ErrUnsupportedKeyType = errors.New("unsupported key type")
 )
 
 // Loader provides methods to load cryptographic private keys from various sources.
 type Loader interface {
 	Load(source string) (crypto.PrivateKey, error)
+	LoadWithPassword(source string, password string) (crypto.PrivateKey, error)
 }
 
 type loader struct{}
@@ -37,7 +39,14 @@ func NewLoader() Loader {
 
 // Load detects whether the source is a file path or base64-encoded key,
 // then parses and returns the private key.
+// For password-protected keys, returns ErrPasswordProtected.
 func (l *loader) Load(source string) (crypto.PrivateKey, error) {
+	return l.LoadWithPassword(source, "")
+}
+
+// LoadWithPassword detects whether the source is a file path or base64-encoded key,
+// then parses and returns the private key using the provided password if needed.
+func (l *loader) LoadWithPassword(source string, password string) (crypto.PrivateKey, error) {
 	if source == "" {
 		return nil, ErrEmptyKey
 	}
@@ -57,20 +66,20 @@ func (l *loader) Load(source string) (crypto.PrivateKey, error) {
 			}
 			return nil, fmt.Errorf("%w: %v", ErrInvalidKey, err)
 		}
-		return parsePEM(data)
+		return parsePEM(data, password)
 	}
 
 	// Try base64 decoding (for strings that look like base64)
 	// Base64 strings are typically long and contain base64 alphabet
 	if looksLikeBase64(source) {
 		if data, err := base64.StdEncoding.DecodeString(source); err == nil {
-			return parsePEM(data)
+			return parsePEM(data, password)
 		}
 	}
 
 	// As a fallback, try as file path anyway (in case it's a simple filename)
 	if data, err := os.ReadFile(source); err == nil {
-		return parsePEM(data)
+		return parsePEM(data, password)
 	} else if os.IsNotExist(err) {
 		// File doesn't exist, and base64 decoding failed
 		return nil, ErrInvalidKey
@@ -104,7 +113,8 @@ func isBase64Char(r rune) bool {
 }
 
 // parsePEM parses PEM-encoded private key data and returns the key.
-func parsePEM(data []byte) (crypto.PrivateKey, error) {
+// If the key is password-protected and no password is provided, returns ErrPasswordProtected.
+func parsePEM(data []byte, password string) (crypto.PrivateKey, error) {
 	block, rest := pem.Decode(data)
 	if block == nil {
 		return nil, ErrInvalidKey
@@ -118,18 +128,33 @@ func parsePEM(data []byte) (crypto.PrivateKey, error) {
 		}
 	}
 
-	// Check for password protection
-	if block.Headers["Proc-Type"] == "4,ENCRYPTED" {
-		return nil, ErrPasswordProtected
-	}
-
 	switch block.Type {
 	case "RSA PRIVATE KEY":
+		// Legacy PKCS#1 format - may be encrypted with PEM encryption
+		if x509.IsEncryptedPEMBlock(block) {
+			if password == "" {
+				return nil, ErrPasswordProtected
+			}
+			// Decrypt the block
+			decryptedBytes, err := x509.DecryptPEMBlock(block, []byte(password))
+			if err != nil {
+				return nil, ErrWrongPassword
+			}
+			block.Bytes = decryptedBytes
+		}
 		return parseRSAPrivateKey(block.Bytes)
+
+	case "ENCRYPTED PRIVATE KEY":
+		// PKCS#8 encrypted format - not supported yet
+		return nil, ErrPasswordProtected
+
 	case "PRIVATE KEY":
+		// Unencrypted PKCS#8 format
 		return parsePKCS8PrivateKey(block.Bytes)
+
 	case "EC PRIVATE KEY":
 		return nil, ErrUnsupportedKeyType
+
 	default:
 		return nil, ErrInvalidKey
 	}

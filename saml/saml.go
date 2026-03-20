@@ -52,10 +52,14 @@ func (d *decrypter) Decrypt(encryptedData []byte, privateKey crypto.PrivateKey) 
 	}
 
 	// Find EncryptedAssertion element
-	encryptedAssertion := doc.FindElement("//saml2:EncryptedAssertion")
-	if encryptedAssertion == nil {
-		encryptedAssertion = doc.FindElement("//EncryptedAssertion")
+	var encryptedAssertion *etree.Element
+	for _, el := range []string{"//saml:EncryptedAssertion", "//saml2:EncryptedAssertion", "//EncryptedAssertion"} {
+		encryptedAssertion = doc.FindElement(el)
+		if encryptedAssertion == nil {
+			continue
+		}
 	}
+
 	if encryptedAssertion == nil {
 		return nil, fmt.Errorf("%w: no EncryptedAssertion element found", ErrMalformedXML)
 	}

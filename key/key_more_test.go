@@ -171,7 +171,7 @@ func TestLoad_FileReadError(t *testing.T) {
 }
 
 func TestParsePEM_NoBlock(t *testing.T) {
-	_, err := parsePEM([]byte("not pem data"))
+	_, err := parsePEM([]byte("not pem data"), "")
 	assert.ErrorIs(t, err, ErrInvalidKey)
 }
 
@@ -182,7 +182,7 @@ func TestParsePEM_MultipleBlocks(t *testing.T) {
 	// Create data with multiple PEM blocks
 	multiData := append(pemData, pemData...)
 
-	_, err := parsePEM(multiData)
+	_, err := parsePEM(multiData, "")
 	assert.ErrorIs(t, err, ErrInvalidKey)
 }
 
@@ -193,7 +193,7 @@ func TestParsePEM_UnknownType(t *testing.T) {
 	}
 	pemData := pem.EncodeToMemory(block)
 
-	_, err := parsePEM(pemData)
+	_, err := parsePEM(pemData, "")
 	assert.ErrorIs(t, err, ErrInvalidKey)
 }
 

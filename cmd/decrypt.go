@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"encoding/base64"
+	"errors"
 	"fmt"
 	"net/url"
 	"os"
@@ -12,14 +13,16 @@ import (
 	"github.com/thedataflows/saml-tools/format"
 	"github.com/thedataflows/saml-tools/key"
 	"github.com/thedataflows/saml-tools/saml"
+	"golang.org/x/term"
 )
 
 type DecryptCmd struct {
-	Input   string `arg:"" optional:"" help:"SAML assertion file (or stdin if omitted)" type:"existingfile"`
-	Key     string `short:"k" required:"" help:"Private key (PEM file path or base64 string)"`
-	Output  string `short:"o" help:"Output file (default: stdout)" type:"path"`
-	Pretty  bool   `short:"p" help:"Pretty-print XML output"`
-	Verbose bool   `short:"v" help:"Enable verbose logging"`
+	Input       string `arg:"" optional:"" help:"SAML assertion file (or stdin if omitted)" type:"existingfile"`
+	Key         string `short:"k" required:"" help:"Private key (PEM file path or base64 string)"`
+	KeyPassword string `env:"ST_KEY_PASSWORD" help:"Password for encrypted private key (will prompt interactively if needed and TTY is available)"`
+	Output      string `short:"o" help:"Output file (default: stdout)" type:"path"`
+	Pretty      bool   `short:"p" help:"Pretty-print XML output"`
+	Verbose     bool   `short:"v" help:"Enable verbose logging"`
 }
 
 func (d *DecryptCmd) Run() error {
@@ -33,7 +36,7 @@ func (d *DecryptCmd) Run() error {
 
 	// Load private key
 	log.Logger().Debug().Str("key_source", maskKey(d.Key)).Msg("Loading private key")
-	privateKey, err := keyLoader.Load(d.Key)
+	privateKey, err := d.loadPrivateKey(keyLoader)
 	if err != nil {
 		log.Logger().Error().
 			Err(err).
@@ -140,6 +143,49 @@ func (d *DecryptCmd) Run() error {
 
 	log.Logger().Debug().Msg("saml-decrypt completed successfully")
 	return nil
+}
+
+// loadPrivateKey loads the private key, prompting for password if needed and TTY is available
+func (d *DecryptCmd) loadPrivateKey(loader key.Loader) (interface{}, error) {
+	// First try without password
+	privateKey, err := loader.Load(d.Key)
+	if err == nil {
+		return privateKey, nil
+	}
+
+	// If it's not a password issue, return the error
+	if !errors.Is(err, key.ErrPasswordProtected) {
+		return nil, err
+	}
+
+	// Key is password-protected
+	password := d.KeyPassword
+
+	// If no password provided, try to prompt interactively
+	if password == "" {
+		if term.IsTerminal(int(os.Stdin.Fd())) {
+			fmt.Fprint(os.Stderr, "Enter key password: ")
+			passwordBytes, err := term.ReadPassword(int(os.Stdin.Fd()))
+			fmt.Fprintln(os.Stderr)
+			if err != nil {
+				return nil, fmt.Errorf("failed to read password: %w", err)
+			}
+			password = string(passwordBytes)
+		} else {
+			return nil, fmt.Errorf("password-protected key requires --key-password flag or ST_KEY_PASSWORD environment variable (no TTY available for interactive prompt)")
+		}
+	}
+
+	// Try loading with the password
+	privateKey, err = loader.LoadWithPassword(d.Key, password)
+	if err != nil {
+		if errors.Is(err, key.ErrWrongPassword) {
+			return nil, fmt.Errorf("incorrect password for private key")
+		}
+		return nil, err
+	}
+
+	return privateKey, nil
 }
 
 func maskKey(k string) string {

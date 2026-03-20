@@ -108,25 +108,62 @@ func TestLoader_Load_UnsupportedKeyType(t *testing.T) {
 func TestLoader_Load_PasswordProtected(t *testing.T) {
 	loader := key.NewLoader()
 
-	// Create a password-protected PEM
+	// Create a password-protected PEM using proper encryption
 	keyPair, err := testutil.GenerateRSAKey(2048)
 	require.NoError(t, err)
 
 	privDER := x509.MarshalPKCS1PrivateKey(keyPair)
-	privBlock := pem.Block{
-		Type:    "RSA PRIVATE KEY",
-		Headers: map[string]string{"Proc-Type": "4,ENCRYPTED"},
-		Bytes:   privDER,
-	}
-	pemBytes := pem.EncodeToMemory(&privBlock)
+	// Encrypt the key with a password using legacy PEM encryption
+	encryptedBlock, err := x509.EncryptPEMBlock(rand.Reader, "RSA PRIVATE KEY", privDER, []byte("secret123"), x509.PEMCipherAES256)
+	require.NoError(t, err)
+	pemBytes := pem.EncodeToMemory(encryptedBlock)
 
 	tmpDir := t.TempDir()
 	keyFile := filepath.Join(tmpDir, "encrypted.pem")
 	err = os.WriteFile(keyFile, pemBytes, 0600)
 	require.NoError(t, err)
 
+	// Without password should return ErrPasswordProtected
 	_, err = loader.Load(keyFile)
 	assert.ErrorIs(t, err, key.ErrPasswordProtected)
+
+	// With wrong password should return ErrWrongPassword
+	_, err = loader.LoadWithPassword(keyFile, "wrongpassword")
+	assert.ErrorIs(t, err, key.ErrWrongPassword)
+
+	// With correct password should succeed
+	loadedKey, err := loader.LoadWithPassword(keyFile, "secret123")
+	require.NoError(t, err)
+	require.NotNil(t, loadedKey)
+
+	rsaKey, ok := loadedKey.(*rsa.PrivateKey)
+	require.True(t, ok)
+	assert.Equal(t, keyPair.D, rsaKey.D)
+}
+
+func TestLoader_LoadWithPassword_Base64(t *testing.T) {
+	loader := key.NewLoader()
+
+	// Create a password-protected PEM
+	keyPair, err := testutil.GenerateRSAKey(2048)
+	require.NoError(t, err)
+
+	privDER := x509.MarshalPKCS1PrivateKey(keyPair)
+	encryptedBlock, err := x509.EncryptPEMBlock(rand.Reader, "RSA PRIVATE KEY", privDER, []byte("mypassword"), x509.PEMCipherAES256)
+	require.NoError(t, err)
+	pemBytes := pem.EncodeToMemory(encryptedBlock)
+
+	// Encode as base64
+	base64Key := base64.StdEncoding.EncodeToString(pemBytes)
+
+	// Load with password from base64
+	loadedKey, err := loader.LoadWithPassword(base64Key, "mypassword")
+	require.NoError(t, err)
+	require.NotNil(t, loadedKey)
+
+	rsaKey, ok := loadedKey.(*rsa.PrivateKey)
+	require.True(t, ok)
+	assert.Equal(t, keyPair.D, rsaKey.D)
 }
 
 func TestLoader_Load_InvalidPEM(t *testing.T) {
