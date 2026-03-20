@@ -8,7 +8,7 @@ require (
 	github.com/beevik/etree v1.6.0
 	github.com/joho/godotenv v1.5.1
 	github.com/stretchr/testify v1.11.1
-	github.com/thedataflows/go-lib-log v1.8.0
+	github.com/thedataflows/go-lib-log v1.9.1
 	golang.org/x/term v0.41.0
 )
 

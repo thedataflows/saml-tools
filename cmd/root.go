@@ -20,6 +20,7 @@ const (
 type Globals struct {
 	LogLevel  string        `help:"Log level (trace,debug,info,warn,error)" default:"info"`
 	LogFormat string        `help:"Log format (console,json)" default:"console"`
+	LogColor  bool          `help:"Enable colored log output" default:"true"`
 	Timeout   time.Duration `short:"t" help:"Request timeout duration" default:"5s"`
 }
 
@@ -38,7 +39,6 @@ func (cli *CLI) AfterApply(ctx *kong.Context) error {
 		return nil
 	}
 
-	// Set log level and format
 	if err := log.SetGlobalLoggerLogLevel(cli.LogLevel); err != nil {
 		return fmt.Errorf("set log level: %w", err)
 	}
@@ -46,6 +46,8 @@ func (cli *CLI) AfterApply(ctx *kong.Context) error {
 	if err := log.SetGlobalLoggerLogFormat(cli.LogFormat); err != nil {
 		return fmt.Errorf("set log format: %w", err)
 	}
+
+	log.SetGlobalLoggerLogColor(cli.LogColor)
 
 	return nil
 }

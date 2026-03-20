@@ -29,6 +29,7 @@ Flags:
   -h, --help                    Show context-sensitive help.
       --log-level="info"        Log level (trace,debug,info,warn,error) ($ST_LOG_LEVEL)
       --log-format="console"    Log format (console,json) ($ST_LOG_FORMAT)
+      --log-color               Enable colored log output ($ST_LOG_COLOR)
   -t, --timeout=5s              Request timeout duration ($ST_TIMEOUT)
 
 Commands:
@@ -58,6 +59,7 @@ Flags:
   -h, --help                    Show context-sensitive help.
       --log-level="info"        Log level (trace,debug,info,warn,error) ($ST_LOG_LEVEL)
       --log-format="console"    Log format (console,json) ($ST_LOG_FORMAT)
+      --log-color               Enable colored log output ($ST_LOG_COLOR)
   -t, --timeout=5s              Request timeout duration ($ST_TIMEOUT)
 
   -k, --key=STRING              Private key (PEM file path or base64 string) ($ST_KEY)
@@ -81,6 +83,7 @@ Flags:
   -h, --help                            Show context-sensitive help.
       --log-level="info"                Log level (trace,debug,info,warn,error) ($ST_LOG_LEVEL)
       --log-format="console"            Log format (console,json) ($ST_LOG_FORMAT)
+      --log-color                       Enable colored log output ($ST_LOG_COLOR)
   -t, --timeout=5s                      Request timeout duration ($ST_TIMEOUT)
   -k, --key=STRING                      Public key or X.509 certificate (PEM file or base64) ($ST_KEY)
   -o, --output=STRING                   Output file (default: stdout) ($ST_OUTPUT)
